@@ -1,0 +1,44 @@
+name: Stop SageMaker (Dev Only)
+
+on:
+  push:
+    branches:
+      - development  # Runs only when changes occur in the development branch
+  schedule:
+    - cron: '0 18 * * 4'  # Runs every Thursday at 18:00 UTC
+  workflow_dispatch:  # Allows manual execution
+
+env:
+  AWS_REGION: eu-west-1  # Ireland region
+
+permissions:
+  id-token: write   # Required for AWS OIDC authentication
+  contents: read    # Allows repository read access
+
+jobs:
+  stop-sagemaker:
+    name: Stop SageMaker Dev
+    runs-on: ubuntu-latest
+    environment: development
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          ref: development  # Ensures it runs using the development branch
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ var.MY_AWS_REGION }}
+
+      - name: Stop SageMaker Instance (Dev Only)
+        env:
+          SAGEMAKER_INSTANCE_DEV: ${{ secrets.SAGEMAKER_INSTANCE_DEV }}
+        run: |
+          echo "Stopping SageMaker instance in dev environment..."
+          aws sagemaker stop-notebook-instance --notebook-instance-name $SAGEMAKER_INSTANCE_DEV
+          echo "SageMaker instance has been stopped."
